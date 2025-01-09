@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 )
 
@@ -15,8 +14,8 @@ func main() {
 	// }
 	// defer conn.Close(context.Background())
 
-	// var m1 makhdoum
-	// row := conn.QueryRow(context.Background(), "SELECT * FROM makhdoum LIMIT 1;")
+	// var m1 account
+	// row := conn.QueryRow(context.Background(), "SELECT * FROM account LIMIT 1;")
 	// err = row.Scan(&m1.Name, &m1.Address, &m1.Birthday)
 	// if err != nil {
 	// 	fmt.Println("Error Fetching Details:", err)
@@ -28,7 +27,9 @@ func main() {
 		log.Fatal(err)
 
 	}
-	fmt.Printf("%+v\n", store)
-	// server := NewAPIServer(":3000", store)
-	// server.Run()
+	if err = store.Init(); err != nil {
+		log.Fatal(err)
+	}
+	server := NewAPIServer(":3000", store)
+	server.Run()
 }

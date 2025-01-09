@@ -1,15 +1,25 @@
 package main
 
-type Makhdoum struct {
+import "time"
+
+type CreateAccountRequest struct {
 	FirstName string `json: "firstName"`
 	LastName  string `json: "lastName"`
 	Address   string `json: "address"`
 }
+type Account struct {
+	ID        int       `json: "id"`
+	FirstName string    `json: "firstName"`
+	LastName  string    `json: "lastName"`
+	Address   string    `json: "address"`
+	CreatedAt time.Time `json: "createdAt"`
+}
 
-func NewMakhdoum(firstName, lastName, address string) *Makhdoum {
-	return &Makhdoum{
+func NewAccount(firstName, lastName, address string) *Account {
+	return &Account{
 		FirstName: firstName,
 		LastName:  lastName,
 		Address:   address,
+		CreatedAt: time.Now().UTC(),
 	}
 }
