@@ -3,13 +3,12 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "github.com/lib/pq"
 )
 
 type Storage interface {
-	CreateAccount(*Account) error
+	CreateAccount(*Account) (*Account, error)
 	DeleteAccount(int) error
 	UpdateAccount(*Account) error
 	GetAccountByID(int) (*Account, error)
@@ -21,7 +20,7 @@ type PostgresStore struct {
 }
 
 func NewPostgresStore() (*PostgresStore, error) {
-	connStr := "user=postgres password= dbname=temp sslmode=disable"
+	connStr := "user=postgres password=postgres1234@ dbname=temp sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
@@ -54,27 +53,28 @@ func (s *PostgresStore) createAccountTable() error {
 	return err
 }
 
-func (s *PostgresStore) CreateAccount(m *Account) error {
-	log.Println("Creating account")
+func (s *PostgresStore) CreateAccount(a *Account) (*Account, error) {
 	query := `insert into account
 	(first_name, last_name, address, created_at)
-	values($1, $2, $3, $4)`
+	values($1, $2, $3, $4) RETURNING id`
 
-	resp, err := s.db.Query(
+	err := s.db.QueryRow(
 		query,
-		m.FirstName,
-		m.LastName,
-		m.Address,
-		m.CreatedAt)
+		a.FirstName,
+		a.LastName,
+		a.Address,
+		a.CreatedAt).Scan(&a.ID)
+
 	if err != nil {
-		return err
+		return &Account{}, err
 	}
-	fmt.Printf("%+v\n", resp)
-	return nil
+
+	return a, err
 }
 
-func (s *PostgresStore) DeleteAccount(int) error {
-	return nil
+func (s *PostgresStore) DeleteAccount(id int) error {
+	_, err := s.db.Query("DELETE FROM account WHERE id=$1", id)
+	return err
 }
 
 func (s *PostgresStore) UpdateAccount(*Account) error {
@@ -83,11 +83,14 @@ func (s *PostgresStore) UpdateAccount(*Account) error {
 
 func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
 	query := `Select * from account where id = $1`
-	row, err := s.db.Query(query, id)
+	rows, err := s.db.Query(query, id)
 	if err != nil {
 		return nil, err
 	}
-	return scanIntoAccount(row)
+	for rows.Next() {
+		return scanIntoAccount(rows)
+	}
+	return nil, fmt.Errorf("Account %v not found", id)
 }
 
 func (s *PostgresStore) GetAccounts() ([]*Account, error) {
